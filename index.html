@@ -857,102 +857,122 @@ function renderEmpresas() {
   document.getElementById('empresas-content').innerHTML = html;
 }
 
-function renderTendencia() {
-  const mql    = data.filter(isMQL).length;
-  const sql    = data.filter(isSQL).length;
-  const closed = data.filter(isClosed).length;
+async function renderTendencia() {
+  try {
+    const r = await fetch(SCRIPT_URL + '?sheet=tendencia');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const txt = await r.text();
+    const rows = parseCSV(txt);
 
-  const weeks = [
-    { label:'Sem 1', mql:Math.max(0,mql-3), sql:Math.max(0,sql-2), closed:Math.max(0,closed-1) },
-    { label:'Sem 2', mql:Math.max(0,mql-1), sql:Math.max(0,sql-1), closed:Math.max(0,closed) },
-    { label:'Actual', mql, sql, closed },
-  ];
+    // Saltar encabezado (Semana, MQL, SQL, Cerrado)
+    const dataRows = rows.slice(1).filter(r => r[0] && r[0].trim());
 
-  if (chartInst) { chartInst.destroy(); chartInst=null; }
+    if (!dataRows.length) {
+      document.getElementById('load-tendencia').style.display = 'none';
+      document.getElementById('tendencia-content').style.display = 'block';
+      document.getElementById('table-rows').innerHTML =
+        '<div class="empty">Aún no hay datos históricos. Se registrarán automáticamente cada lunes.</div>';
+      return;
+    }
 
-  const ctx = document.getElementById('chart').getContext('2d');
-  chartInst = new Chart(ctx, {
-    type:'line',
-    data:{
-      labels: weeks.map(w=>w.label),
-      datasets:[
-        {
-          label:'MQL',
-          data: weeks.map(w=>w.mql),
-          borderColor:'#0E2EFB',
-          backgroundColor:'rgba(14,46,251,0.07)',
-          borderWidth:2,
-          pointBackgroundColor:'#0E2EFB',
-          pointRadius:5,
-          tension:0.4,
-          fill:true
+    const weeks = dataRows.map(r => ({
+      label:  r[0] || '',
+      mql:    parseInt(r[1]) || 0,
+      sql:    parseInt(r[2]) || 0,
+      closed: parseInt(r[3]) || 0,
+    }));
+
+    if (chartInst) { chartInst.destroy(); chartInst = null; }
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    chartInst = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: weeks.map(w => w.label),
+        datasets: [
+          {
+            label: 'MQL',
+            data: weeks.map(w => w.mql),
+            borderColor: '#0E2EFB',
+            backgroundColor: 'rgba(14,46,251,0.07)',
+            borderWidth: 2,
+            pointBackgroundColor: '#0E2EFB',
+            pointRadius: 5,
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: 'SQL',
+            data: weeks.map(w => w.sql),
+            borderColor: '#1FCDFF',
+            backgroundColor: 'rgba(31,205,255,0.07)',
+            borderWidth: 2,
+            pointBackgroundColor: '#1FCDFF',
+            pointRadius: 5,
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: 'Closed',
+            data: weeks.map(w => w.closed),
+            borderColor: '#0C28E2',
+            backgroundColor: 'rgba(12,40,226,0.05)',
+            borderWidth: 2,
+            pointBackgroundColor: '#0C28E2',
+            pointRadius: 5,
+            tension: 0.4,
+            fill: true
+          },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#3A4580',
+              font: { family: 'Outfit', size: 13, weight: '600' },
+              boxWidth: 12,
+              boxHeight: 12,
+              borderRadius: 4,
+              padding: 16
+            }
+          }
         },
-        {
-          label:'SQL',
-          data: weeks.map(w=>w.sql),
-          borderColor:'#1FCDFF',
-          backgroundColor:'rgba(31,205,255,0.07)',
-          borderWidth:2,
-          pointBackgroundColor:'#1FCDFF',
-          pointRadius:5,
-          tension:0.4,
-          fill:true
-        },
-        {
-          label:'Closed',
-          data: weeks.map(w=>w.closed),
-          borderColor:'#0C28E2',
-          backgroundColor:'rgba(12,40,226,0.05)',
-          borderWidth:2,
-          pointBackgroundColor:'#0C28E2',
-          pointRadius:5,
-          tension:0.4,
-          fill:true
-        },
-      ]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{
-          position:'bottom',
-          labels:{
-            color:'#3A4580',
-            font:{family:'Outfit',size:13,weight:'600'},
-            boxWidth:12,
-            boxHeight:12,
-            borderRadius:4,
-            padding:16
+        scales: {
+          x: {
+            grid: { color: 'rgba(14,46,251,0.05)' },
+            ticks: { color: '#7A85B8', font: { family: 'Outfit', size: 12 }, padding: 6 }
+          },
+          y: {
+            grid: { color: 'rgba(14,46,251,0.05)' },
+            ticks: { color: '#7A85B8', font: { family: 'Outfit', size: 12 }, stepSize: 1, padding: 6 },
+            beginAtZero: true
           }
         }
-      },
-      scales:{
-        x:{
-          grid:{color:'rgba(14,46,251,0.05)'},
-          ticks:{color:'#7A85B8',font:{family:'Outfit',size:12},padding:6}
-        },
-        y:{
-          grid:{color:'rgba(14,46,251,0.05)'},
-          ticks:{color:'#7A85B8',font:{family:'Outfit',size:12},stepSize:1,padding:6},
-          beginAtZero:true
-        }
       }
-    }
-  });
+    });
 
-  let rows='';
-  weeks.forEach(w=>{
-    rows+=`<div class="table-row">
-      <div class="t-sem">${w.label}</div>
-      <div class="t-num blue">${w.mql}</div>
-      <div class="t-num cyan">${w.sql}</div>
-      <div class="t-num dark">${w.closed}</div>
-    </div>`;
-  });
-  document.getElementById('table-rows').innerHTML = rows;
+    let tableRows = '';
+    weeks.forEach(w => {
+      tableRows += `<div class="table-row">
+        <div class="t-sem">${w.label}</div>
+        <div class="t-num blue">${w.mql}</div>
+        <div class="t-num cyan">${w.sql}</div>
+        <div class="t-num dark">${w.closed}</div>
+      </div>`;
+    });
+    document.getElementById('table-rows').innerHTML = tableRows;
 
-  document.getElementById('load-tendencia').style.display    = 'none';
+  } catch(e) {
+    console.error('Error cargando Tendencia:', e);
+    document.getElementById('table-rows').innerHTML =
+      '<div class="empty">No se pudieron cargar los datos de tendencia.</div>';
+  }
+
+  document.getElementById('load-tendencia').style.display = 'none';
   document.getElementById('tendencia-content').style.display = 'block';
 }
 
@@ -976,3 +996,4 @@ loadData();
 </script>
 </body>
 </html>
+
