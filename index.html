@@ -2,998 +2,318 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>saga fiscal — Pipeline</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAGA Fiscal — Reporte de Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --blue:    #0E2EFB;
-    --blue600: #0C28E2;
-    --blue400: #4F6BFF;
-    --blue300: #8A9CFF;
-    --blue200: #B0BCFF;
-    --blue100: #D6DCFF;
-    --blue50:  #EEF1FF;
-    --cyan:    #1FCDFF;
-    --white:   #FFFFFF;
-    --text:    #0A0F2E;
-    --text2:   #3A4580;
-    --muted:   #7A85B8;
-    --border:  #E2E6F8;
-    --bg:      #F4F6FE;
-    --card:    #FFFFFF;
-    --radius:  16px;
-    --radius-sm: 10px;
-    --max: 680px;
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-  body {
-    font-family: 'Outfit', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
-
-  /* centrado en desktop */
-  .wrap {
-    max-width: var(--max);
-    margin: 0 auto;
-  }
-
-  /* ── HEADER ── */
-  .header {
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .header-inner {
-    max-width: var(--max);
-    margin: 0 auto;
-    padding: 16px 24px 0;
-  }
-
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 3px;
-  }
-
-  .logo {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.8px;
-    color: var(--text);
-    line-height: 1;
-  }
-
-  .logo-fiscal { font-weight: 300; color: var(--text2); }
-
-  .logo-spark {
-    display: inline-block;
-    width: 7px; height: 7px;
-    background: var(--cyan);
-    border-radius: 50%;
-    margin-left: 2px;
-    vertical-align: super;
-  }
-
-  .badge {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-    background: var(--blue50);
-    padding: 4px 10px;
-    border-radius: 20px;
-  }
-
-  .badge-dot {
-    width: 6px; height: 6px;
-    background: var(--cyan);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
-
-  .week-label {
-    font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 14px;
-    margin-top: 4px;
-  }
-
-  .tabs { display: flex; }
-
-  .tab {
-    flex: 1;
-    padding: 12px 0;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all .2s;
-    font-family: 'Outfit', sans-serif;
-    background: none;
-    border-top: none;
-    border-left: none;
-    border-right: none;
-  }
-
-  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
-
-  /* ── MAIN ── */
-  .main {
-    max-width: var(--max);
-    margin: 0 auto;
-    padding: 20px 24px 100px;
-  }
-
-  .section { display: none; }
-  .section.active { display: block; }
-
-  /* LOADING */
-  .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    gap: 14px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  .spinner {
-    width: 28px; height: 28px;
-    border: 2px solid var(--blue100);
-    border-top-color: var(--blue);
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── FUNNEL GRID (desktop: todo en una vista balanceada) ── */
-  .funnel-top {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 14px;
-    animation: fadeUp .35s ease both;
-  }
-
-  /* ── HERO CARD ── */
-  .hero-card {
-    background: var(--blue);
-    border-radius: var(--radius);
-    padding: 22px 20px 18px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero-card::before {
-    content: '';
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 180px; height: 180px;
-    background: radial-gradient(circle at 55% 45%, rgba(31,205,255,.7) 0%, rgba(31,205,255,.15) 45%, transparent 70%);
-    filter: blur(28px);
-    pointer-events: none;
-  }
-
-  .hero-card::after {
-    content: '';
-    position: absolute;
-    bottom: -30px; left: 10px;
-    width: 120px; height: 120px;
-    background: radial-gradient(circle, rgba(79,107,255,.45) 0%, transparent 70%);
-    filter: blur(20px);
-    pointer-events: none;
-  }
-
-  .hero-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,.5);
-    margin-bottom: 4px;
-    position: relative;
-  }
-
-  .hero-total {
-    font-size: 52px;
-    font-weight: 900;
-    letter-spacing: -2px;
-    color: var(--white);
-    line-height: 1;
-    position: relative;
-  }
-
-  .hero-sub {
-    font-size: 12px;
-    color: rgba(255,255,255,.5);
-    margin-top: 3px;
-    position: relative;
-  }
-
-  .hero-pills {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    position: relative;
-  }
-
-  .hero-pill {
-    flex: 1;
-    background: rgba(255,255,255,.1);
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 9px;
-    padding: 9px 6px;
-    text-align: center;
-  }
-
-  .hero-pill-num {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--white);
-    letter-spacing: -1px;
-    line-height: 1;
-  }
-
-  .hero-pill.cyan .hero-pill-num { color: var(--cyan); }
-
-  .hero-pill-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(255,255,255,.5);
-    margin-top: 3px;
-  }
-
-  /* ── CONV CARDS ── */
-  .conv-col {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .conv-card {
-    background: var(--card);
-    border-radius: var(--radius-sm);
-    padding: 16px 18px;
-    border: 1px solid var(--border);
-    flex: 1;
-  }
-
-  .conv-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    margin-bottom: 5px;
-  }
-
-  .conv-pct {
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    color: var(--blue);
-    line-height: 1;
-  }
-
-  .conv-desc {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 3px;
-  }
-
-  /* ── BAR SECTION ── */
-  .bar-section {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 20px;
-    border: 1px solid var(--border);
-    margin-bottom: 14px;
-    animation: fadeUp .4s ease both;
-    animation-delay: .1s;
-  }
-
-  .section-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 16px;
-  }
-
-  .bar-row { margin-bottom: 14px; }
-  .bar-row:last-child { margin-bottom: 0; }
-
-  .bar-top {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 7px;
-    align-items: center;
-  }
-
-  .bar-name { font-size: 13px; font-weight: 600; color: var(--text2); }
-  .bar-num  { font-size: 14px; font-weight: 700; color: var(--text); }
-
-  .bar-track {
-    height: 6px;
-    background: var(--blue50);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .bar-fill { height: 100%; border-radius: 3px; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
-  .bar-fill.mql    { background: var(--blue); }
-  .bar-fill.sql    { background: var(--cyan); }
-  .bar-fill.closed { background: var(--blue600); }
-
-  /* ── EMPRESAS DOS COLUMNAS ── */
-  .empresas-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .empresas-full {
-    grid-column: span 2;
-  }
-
-  .col-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  /* en móvil vuelve a una columna */
-  @media (max-width: 520px) {
-    .empresas-grid { grid-template-columns: 1fr; }
-    .empresas-full { grid-column: span 1; }
-  }
-  .stage-block { margin-bottom: 22px; }
-
-  .stage-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-
-  .stage-pill {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 20px;
-  }
-
-  .stage-pill.mql    { background: var(--blue50);  color: var(--blue); }
-  .stage-pill.sql    { background: #E0FAFF; color: #007FA8; }
-  .stage-pill.closed { background: var(--blue100); color: var(--blue600); }
-
-  .stage-count {
-    margin-left: auto;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-
-  .empresa-card {
-    background: var(--card);
-    border-radius: var(--radius-sm);
-    padding: 13px 16px;
-    margin-bottom: 8px;
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .empresa-avatar {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 800;
-    flex-shrink: 0;
-  }
-
-  .empresa-avatar.mql    { background: var(--blue50);  color: var(--blue); }
-  .empresa-avatar.sql    { background: #E0FAFF; color: #007FA8; }
-  .empresa-avatar.closed { background: var(--blue100); color: var(--blue600); }
-
-  .empresa-info { flex: 1; min-width: 0; }
-
-  .empresa-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.3;
-  }
-
-  .empresa-contact {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 2px;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.3;
-  }
-
-  .empresa-right { text-align: right; flex-shrink: 0; }
-
-  .empresa-origen {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-    background: var(--blue50);
-    padding: 3px 8px;
-    border-radius: 6px;
-    display: inline-block;
-    margin-bottom: 3px;
-  }
-
-  .empresa-fecha { font-size: 11px; color: var(--muted); }
-
-  /* ── TENDENCIA ── */
-  .chart-card {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 20px;
-    border: 1px solid var(--border);
-    margin-bottom: 14px;
-    animation: fadeUp .35s ease both;
-    max-width: 100%;
-  }
-
-  .chart-wrap {
-    position: relative;
-    height: 300px;
-  }
-
-  .resumen-table {
-    background: var(--card);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-bottom: 14px;
-    animation: fadeUp .4s ease both;
-    animation-delay: .08s;
-  }
-
-  .table-head {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    padding: 11px 18px;
-    background: var(--blue50);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .table-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    padding: 13px 18px;
-    border-bottom: 1px solid var(--border);
-    align-items: center;
-  }
-
-  .table-row:last-child { border-bottom: none; }
-  .t-sem  { font-size: 13px; font-weight: 600; color: var(--text2); }
-  .t-num  { font-size: 14px; font-weight: 700; color: var(--text); text-align: center; }
-  .t-num.blue { color: var(--blue); }
-  .t-num.cyan { color: #007FA8; }
-  .t-num.dark { color: var(--blue600); }
-
-  /* ── FAB ── */
-  .fab {
-    position: fixed;
-    bottom: 28px; right: 28px;
-    width: 52px; height: 52px;
-    background: var(--blue);
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 20px rgba(14,46,251,.35);
-    transition: transform .2s;
-    z-index: 200;
-  }
-
-  .fab:active { transform: scale(.92); }
-  .fab.spinning svg { animation: spin .7s linear infinite; }
-
-  /* ERROR */
-  .error-box {
-    background: #FFF2F2;
-    border: 1px solid #FFD0D0;
-    border-radius: var(--radius-sm);
-    padding: 18px;
-    font-size: 13px;
-    color: #C0392B;
-    text-align: center;
-    line-height: 1.6;
-  }
-
-  .empty { text-align:center; padding:32px; font-size:13px; color:var(--muted); }
-
-  @keyframes fadeUp {
-    from { opacity:0; transform:translateY(10px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
+:root{
+  --azul:#0E2EFB;
+  --cyan:#1FCDFF;
+  --tinta:#0B1533;
+  --gris:#5B6784;
+  --linea:#D9E2F5;
+  --fondo:#F4F7FE;
+  --blanco:#FFFFFF;
+  --verde:#12A05C;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--fondo);
+  color:var(--tinta);
+  -webkit-font-smoothing:antialiased;
+  padding:32px 24px 64px;
+}
+.wrap{max-width:1120px;margin:0 auto}
+
+/* Encabezado */
+header{margin-bottom:28px}
+.eyebrow{
+  font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--azul);margin-bottom:6px
+}
+h1{font-size:30px;font-weight:600;letter-spacing:-.02em}
+.actualizado{font-size:13px;color:var(--gris);margin-top:6px}
+
+/* Pestañas */
+nav{display:flex;gap:4px;margin:24px 0 20px;border-bottom:1px solid var(--linea)}
+nav button{
+  font-family:inherit;font-size:14px;font-weight:500;
+  background:none;border:none;cursor:pointer;
+  padding:10px 18px;color:var(--gris);
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .15s,border-color .15s;
+}
+nav button:hover{color:var(--tinta)}
+nav button[aria-selected="true"]{color:var(--azul);border-bottom-color:var(--azul)}
+nav button:focus-visible{outline:2px solid var(--azul);outline-offset:2px;border-radius:4px}
+
+.panel{display:none}
+.panel.activo{display:block}
+
+/* Tarjetas de etapa */
+.etapas{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.etapa{
+  background:var(--blanco);border:1px solid var(--linea);
+  border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;
+}
+.etapa::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:var(--azul)}
+.etapa.sql::before{background:var(--cyan)}
+.etapa.closed::before{background:var(--verde)}
+.etapa .nombre{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gris)}
+.etapa .cifra{font-size:40px;font-weight:600;line-height:1.1;margin-top:8px;letter-spacing:-.03em}
+.etapa .pie{font-size:13px;color:var(--gris);margin-top:2px}
+
+/* Embudo */
+.embudo{background:var(--blanco);border:1px solid var(--linea);border-radius:12px;padding:24px}
+.barra{margin-bottom:18px}
+.barra:last-child{margin-bottom:0}
+.barra .fila{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.barra .rot{font-size:14px;font-weight:500}
+.barra .num{font-size:14px;font-weight:600;color:var(--gris);font-variant-numeric:tabular-nums}
+.pista{height:10px;background:var(--fondo);border-radius:5px;overflow:hidden}
+.relleno{height:100%;border-radius:5px;transition:width .5s ease}
+
+/* Tablas */
+.columnas{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.bloque{background:var(--blanco);border:1px solid var(--linea);border-radius:12px;overflow:hidden}
+.bloque h2{
+  font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:16px 20px;border-bottom:1px solid var(--linea);color:var(--azul)
+}
+.bloque h2 span{color:var(--gris);font-weight:500;margin-left:6px}
+table{width:100%;border-collapse:collapse}
+th{
+  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--gris);text-align:left;padding:10px 20px;border-bottom:1px solid var(--linea)
+}
+td{padding:12px 20px;font-size:14px;border-bottom:1px solid var(--fondo);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--fondo)}
+.empresa{font-weight:500}
+.meta{font-size:12px;color:var(--gris);margin-top:2px}
+.num-col{text-align:right;font-variant-numeric:tabular-nums}
+.etiqueta{
+  display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;
+  background:#E8EDFF;color:var(--azul)
+}
+.etiqueta.despachos{background:#E0F8FF;color:#0A7FA0}
+.etiqueta.mailchimp{background:#EDE8FF;color:#5B3BC4}
+
+/* Gráfica de tendencia */
+.grafica{background:var(--blanco);border:1px solid var(--linea);border-radius:12px;padding:24px}
+.leyenda{display:flex;gap:20px;margin-bottom:18px;font-size:13px;color:var(--gris)}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+svg{width:100%;height:auto;display:block}
+
+.aviso{
+  background:var(--blanco);border:1px solid var(--linea);border-radius:12px;
+  padding:40px 24px;text-align:center;color:var(--gris);font-size:14px
+}
+.aviso.error{border-color:#F3C9C9;background:#FFF6F6;color:#9B2C2C}
+
+@media(max-width:760px){
+  body{padding:20px 14px 48px}
+  .etapas{grid-template-columns:1fr}
+  .columnas{grid-template-columns:1fr}
+  h1{font-size:24px}
+  nav{overflow-x:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="header">
-  <div class="header-inner">
-    <div class="header-top">
-      <div class="logo">saga<span class="logo-fiscal"> fiscal</span><span class="logo-spark"></span></div>
-      <div class="badge"><div class="badge-dot"></div><span id="lastUpdate">–</span></div>
-    </div>
-    <div class="week-label" id="weekLabel">Pipeline activo</div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('funnel')">Funnel</button>
-      <button class="tab" onclick="switchTab('empresas')">Empresas</button>
-      <button class="tab" onclick="switchTab('tendencia')">Tendencia</button>
-    </div>
+<header>
+  <div class="eyebrow">SAGA Fiscal</div>
+  <h1>Reporte de Pipeline</h1>
+  <div class="actualizado" id="actualizado">Cargando datos…</div>
+</header>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-panel="funnel">Funnel</button>
+  <button role="tab" aria-selected="false" data-panel="empresas">Empresas</button>
+  <button role="tab" aria-selected="false" data-panel="tendencia">Tendencia</button>
+</nav>
+
+<section class="panel activo" id="funnel">
+  <div class="etapas">
+    <div class="etapa"><div class="nombre">MQL</div><div class="cifra" id="c-mql">—</div><div class="pie">Demo agendada</div></div>
+    <div class="etapa sql"><div class="nombre">SQL</div><div class="cifra" id="c-sql">—</div><div class="pie">Probando o en cierre</div></div>
+    <div class="etapa closed"><div class="nombre">Cerrado</div><div class="cifra" id="c-closed">—</div><div class="pie">Cuenta ganada</div></div>
   </div>
-</div>
+  <div class="embudo" id="embudo"></div>
+</section>
 
-<div class="main">
-
-  <!-- FUNNEL -->
-  <div class="section active" id="tab-funnel">
-    <div class="loading" id="load-funnel"><div class="spinner"></div><span>Cargando pipeline...</span></div>
-    <div id="funnel-content" style="display:none">
-
-      <!-- fila superior: hero + conversiones -->
-      <div class="funnel-top">
-        <div class="hero-card">
-          <div class="hero-label">Pipeline total</div>
-          <div class="hero-total" id="h-total">–</div>
-          <div class="hero-sub">prospectos activos</div>
-          <div class="hero-pills">
-            <div class="hero-pill">
-              <div class="hero-pill-num" id="h-mql">–</div>
-              <div class="hero-pill-label">MQL</div>
-            </div>
-            <div class="hero-pill cyan">
-              <div class="hero-pill-num" id="h-sql">–</div>
-              <div class="hero-pill-label">SQL</div>
-            </div>
-            <div class="hero-pill">
-              <div class="hero-pill-num" id="h-closed">–</div>
-              <div class="hero-pill-label">Closed</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="conv-col">
-          <div class="conv-card">
-            <div class="conv-label">MQL → SQL</div>
-            <div class="conv-pct" id="cv1">–</div>
-            <div class="conv-desc">tasa de avance</div>
-          </div>
-          <div class="conv-card">
-            <div class="conv-label">SQL → Closed</div>
-            <div class="conv-pct" id="cv2">–</div>
-            <div class="conv-desc">tasa de cierre</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- distribución abajo -->
-      <div class="bar-section">
-        <div class="section-label">Distribución</div>
-        <div class="bar-row">
-          <div class="bar-top"><span class="bar-name">MQL — Demo</span><span class="bar-num" id="bv-mql">–</span></div>
-          <div class="bar-track"><div class="bar-fill mql" id="bf-mql" style="width:0%"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-top"><span class="bar-name">SQL — Probando</span><span class="bar-num" id="bv-sql">–</span></div>
-          <div class="bar-track"><div class="bar-fill sql" id="bf-sql" style="width:0%"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-top"><span class="bar-name">Closed — Cerrado</span><span class="bar-num" id="bv-closed">–</span></div>
-          <div class="bar-track"><div class="bar-fill closed" id="bf-closed" style="width:0%"></div></div>
-        </div>
-      </div>
-
+<section class="panel" id="empresas">
+  <div class="columnas">
+    <div class="bloque">
+      <h2>MQL <span id="n-mql"></span></h2>
+      <div id="t-mql"></div>
+    </div>
+    <div class="bloque">
+      <h2>SQL <span id="n-sql"></span></h2>
+      <div id="t-sql"></div>
     </div>
   </div>
+</section>
 
-  <!-- EMPRESAS -->
-  <div class="section" id="tab-empresas">
-    <div id="empresas-content"><div class="loading"><div class="spinner"></div><span>Cargando...</span></div></div>
-  </div>
-
-  <!-- TENDENCIA -->
-  <div class="section" id="tab-tendencia">
-    <div class="loading" id="load-tendencia"><div class="spinner"></div><span>Cargando...</span></div>
-    <div id="tendencia-content" style="display:none">
-      <div class="chart-card">
-        <div class="section-label">Evolución semanal</div>
-        <div class="chart-wrap">
-          <canvas id="chart"></canvas>
-        </div>
-      </div>
-      <div class="resumen-table">
-        <div class="table-head">
-          <div>Semana</div>
-          <div style="text-align:center">MQL</div>
-          <div style="text-align:center">SQL</div>
-          <div style="text-align:center">Closed</div>
-        </div>
-        <div id="table-rows"></div>
-      </div>
+<section class="panel" id="tendencia">
+  <div class="grafica">
+    <div class="leyenda">
+      <span><i style="background:#0E2EFB"></i>MQL</span>
+      <span><i style="background:#1FCDFF"></i>SQL</span>
+      <span><i style="background:#12A05C"></i>Cerrado</span>
     </div>
+    <div id="g-tendencia"><div class="aviso">Cargando…</div></div>
   </div>
+</section>
 
 </div>
 
-<button class="fab" id="fab" onclick="loadData()">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="23 4 23 10 17 10"></polyline>
-    <polyline points="1 20 1 14 7 14"></polyline>
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-  </svg>
-</button>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzysMBLi6lj5jSzBT_n8b05oOEXCgsanTyowGQ81fg_Eu9DQ7cBmjX5GPcjFsuLJcXEBg/exec';
+const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzysMBLi6lj5jSzBT_n8b05oOEXCgsanTyowGQ81fg_Eu9DQ7cBmjX5GPcjFsuLJcXEBg/exec';
 
-let data = [];
-let chartInst = null;
-
-function parseCSV(txt) {
-  return txt.trim().split('\n').map(line => {
-    const cols = []; let cur = '', q = false;
-    for (const c of line) {
-      if (c==='"') q=!q;
-      else if (c===',' && !q) { cols.push(cur.trim()); cur=''; }
-      else cur+=c;
-    }
-    cols.push(cur.trim());
-    return cols;
+/* Pestañas */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
+    document.getElementById(b.dataset.panel).classList.add('activo');
   });
-}
+});
 
-function serialToDate(s) {
-  if (!s) return '';
-  // Número serial de Google Sheets
-  const n = Number(s);
-  if (!isNaN(n) && n > 40000) {
-    const d = new Date(Math.round((n-25569)*86400*1000));
-    return isNaN(d) ? '' : d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'});
-  }
-  // String de fecha (cualquier formato que Date pueda parsear)
-  const d = new Date(s);
-  if (!isNaN(d)) return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'});
-  return '';
-}
-
-function initials(n) {
-  if (!n) return '?';
-  const p = n.trim().split(/\s+/);
-  return p.length===1 ? p[0].substring(0,2).toUpperCase() : (p[0][0]+p[1][0]).toUpperCase();
-}
-
-function pct(a,b) { return (!b||b===0)?'0%':Math.round(a/b*100)+'%'; }
-
-// Normaliza el estatus calculado — tolera espacios, mayúsculas mixtas
-function getCalc(r) {
-  return (r.calc||'').trim().toUpperCase();
-}
-
-function isMQL(r)    { return getCalc(r)==='MQL'; }
-function isSQL(r)    { return getCalc(r)==='SQL'; }
-function isClosed(r) {
-  const c = getCalc(r);
-  const e = (r.estatus||'').trim().toLowerCase();
-  return c==='CLOSED' || e==='cerrado' || e==='closed';
-}
-
-async function loadData() {
-  const fab = document.getElementById('fab');
-  fab.classList.add('spinning');
-  try {
-    const r = await fetch(SCRIPT_URL);
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    const txt = await r.text();
-    const rows = parseCSV(txt);
-
-    // Detectar fila de inicio: buscar la primera fila que no sea encabezado
-    let start = 0;
-    for (let i=0; i<rows.length; i++) {
-      const v = (rows[i][0]||'').trim().toLowerCase();
-      if (v && v!=='empresa' && !v.includes('pipeline') && !v.includes('saga')) {
-        start = i; break;
-      }
+/* Lector de CSV que respeta comillas */
+function leerCSV(texto){
+  const filas=[];let fila=[];let campo='';let entre=false;
+  for(let i=0;i<texto.length;i++){
+    const c=texto[i];
+    if(entre){
+      if(c==='"'){ if(texto[i+1]==='"'){campo+='"';i++;} else entre=false; }
+      else campo+=c;
+    }else{
+      if(c==='"') entre=true;
+      else if(c===','){fila.push(campo);campo='';}
+      else if(c==='\n'){fila.push(campo);filas.push(fila);fila=[];campo='';}
+      else if(c!=='\r') campo+=c;
     }
-
-    // DEBUG: log primeras filas para ver estructura
-    console.log('Primeras filas:', rows.slice(start, start+5));
-
-    data = rows.slice(start)
-      .filter(r => r[0] && r[0].trim())
-      .map(r => ({
-        empresa:  r[0]||'',
-        contacto: r[1]||'',
-        estatus:  (r[2]||'').trim().toLowerCase(),
-        fechaDemo:r[3]||'',
-        origen:   r[6]||'',
-        calc:     (r[7]||'').trim().toUpperCase(),
-      }))
-      .filter(r => ['demo','probando','cerrado','closed'].includes(r.estatus));
-
-    console.log('Datos procesados:', data.length, 'filas');
-    console.log('MQL:', data.filter(isMQL).length, 'SQL:', data.filter(isSQL).length, 'Closed:', data.filter(isClosed).length);
-
-    const now = new Date();
-    document.getElementById('lastUpdate').textContent =
-      now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('weekLabel').textContent =
-      now.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-
-    renderFunnel();
-    renderEmpresas();
-    renderTendencia();
-
-  } catch(e) {
-    console.error(e);
-    showError(e.message);
   }
-  fab.classList.remove('spinning');
+  if(campo!==''||fila.length){fila.push(campo);filas.push(fila);}
+  return filas;
 }
 
-function renderFunnel() {
-  const mql    = data.filter(isMQL).length;
-  const sql    = data.filter(isSQL).length;
-  const closed = data.filter(isClosed).length;
-  const total  = mql+sql+closed;
-
-  document.getElementById('h-total').textContent   = total;
-  document.getElementById('h-mql').textContent     = mql;
-  document.getElementById('h-sql').textContent     = sql;
-  document.getElementById('h-closed').textContent  = closed;
-  document.getElementById('cv1').textContent       = pct(sql,mql+sql);
-  document.getElementById('cv2').textContent       = pct(closed,sql+closed);
-  document.getElementById('bv-mql').textContent    = mql;
-  document.getElementById('bv-sql').textContent    = sql;
-  document.getElementById('bv-closed').textContent = closed;
-
-  const mx = Math.max(mql,sql,closed,1);
-  setTimeout(()=>{
-    document.getElementById('bf-mql').style.width    = (mql/mx*100)+'%';
-    document.getElementById('bf-sql').style.width    = (sql/mx*100)+'%';
-    document.getElementById('bf-closed').style.width = (closed/mx*100)+'%';
-  },80);
-
-  document.getElementById('load-funnel').style.display    = 'none';
-  document.getElementById('funnel-content').style.display = 'block';
+/* Las fechas llegan como texto largo de JavaScript; aquí se normalizan */
+function aFecha(v){
+  if(!v) return null;
+  const d=new Date(v);
+  return isNaN(d.getTime())?null:d;
 }
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fechaCorta(d){ return d.getDate()+' '+MESES[d.getMonth()]; }
 
-function renderEmpresas() {
-  const mqlItems    = data.filter(isMQL);
-  const sqlItems    = data.filter(isSQL);
-  const closedItems = data.filter(isClosed);
-
-  function cards(items, key) {
-    if (!items.length) return '<div class="empty" style="padding:16px">Sin registros</div>';
-    return items.map(e => `
-      <div class="empresa-card">
-        <div class="empresa-avatar ${key}">${initials(e.empresa)}</div>
-        <div class="empresa-info">
-          <div class="empresa-name">${e.empresa}</div>
-          <div class="empresa-contact">${e.contacto}</div>
-        </div>
-        <div class="empresa-right">
-          <div class="empresa-origen">${e.origen||'—'}</div>
-          ${e.fechaDemo?`<div class="empresa-fecha">${serialToDate(e.fechaDemo)}</div>`:''}
-        </div>
-      </div>`).join('');
-  }
-
-  function colHeader(key, label, count) {
-    return `<div class="col-title">
-      <span class="stage-pill ${key}">${label}</span>
-      <span class="stage-count">${count} empresa${count!==1?'s':''}</span>
-    </div>`;
-  }
-
-  const html = `
-    <div class="empresas-grid">
-      <div>
-        ${colHeader('mql','MQL',mqlItems.length)}
-        ${cards(mqlItems,'mql')}
-      </div>
-      <div>
-        ${colHeader('sql','SQL',sqlItems.length)}
-        ${cards(sqlItems,'sql')}
-      </div>
-      ${closedItems.length ? `
-      <div class="empresas-full">
-        ${colHeader('closed','Closed',closedItems.length)}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${cards(closedItems,'closed')}
-        </div>
-      </div>` : ''}
-    </div>`;
-
-  document.getElementById('empresas-content').innerHTML = html;
-}
-
-async function renderTendencia() {
-  try {
-    const r = await fetch(SCRIPT_URL + '?sheet=tendencia');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const txt = await r.text();
-    const rows = parseCSV(txt);
-
-    // Saltar encabezado (Semana, MQL, SQL, Cerrado)
-    const dataRows = rows.slice(1).filter(r => r[0] && r[0].trim());
-
-    if (!dataRows.length) {
-      document.getElementById('load-tendencia').style.display = 'none';
-      document.getElementById('tendencia-content').style.display = 'block';
-      document.getElementById('table-rows').innerHTML =
-        '<div class="empty">Aún no hay datos históricos. Se registrarán automáticamente cada lunes.</div>';
-      return;
-    }
-
-    const weeks = dataRows.map(r => ({
-      label:  r[0] || '',
-      mql:    parseInt(r[1]) || 0,
-      sql:    parseInt(r[2]) || 0,
-      closed: parseInt(r[3]) || 0,
-    }));
-
-    if (chartInst) { chartInst.destroy(); chartInst = null; }
-
-    const ctx = document.getElementById('chart').getContext('2d');
-    chartInst = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: weeks.map(w => w.label),
-        datasets: [
-          {
-            label: 'MQL',
-            data: weeks.map(w => w.mql),
-            borderColor: '#0E2EFB',
-            backgroundColor: 'rgba(14,46,251,0.07)',
-            borderWidth: 2,
-            pointBackgroundColor: '#0E2EFB',
-            pointRadius: 5,
-            tension: 0.4,
-            fill: true
-          },
-          {
-            label: 'SQL',
-            data: weeks.map(w => w.sql),
-            borderColor: '#1FCDFF',
-            backgroundColor: 'rgba(31,205,255,0.07)',
-            borderWidth: 2,
-            pointBackgroundColor: '#1FCDFF',
-            pointRadius: 5,
-            tension: 0.4,
-            fill: true
-          },
-          {
-            label: 'Closed',
-            data: weeks.map(w => w.closed),
-            borderColor: '#0C28E2',
-            backgroundColor: 'rgba(12,40,226,0.05)',
-            borderWidth: 2,
-            pointBackgroundColor: '#0C28E2',
-            pointRadius: 5,
-            tension: 0.4,
-            fill: true
-          },
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: '#3A4580',
-              font: { family: 'Outfit', size: 13, weight: '600' },
-              boxWidth: 12,
-              boxHeight: 12,
-              borderRadius: 4,
-              padding: 16
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: 'rgba(14,46,251,0.05)' },
-            ticks: { color: '#7A85B8', font: { family: 'Outfit', size: 12 }, padding: 6 }
-          },
-          y: {
-            grid: { color: 'rgba(14,46,251,0.05)' },
-            ticks: { color: '#7A85B8', font: { family: 'Outfit', size: 12 }, stepSize: 1, padding: 6 },
-            beginAtZero: true
-          }
-        }
-      }
-    });
-
-    let tableRows = '';
-    weeks.forEach(w => {
-      tableRows += `<div class="table-row">
-        <div class="t-sem">${w.label}</div>
-        <div class="t-num blue">${w.mql}</div>
-        <div class="t-num cyan">${w.sql}</div>
-        <div class="t-num dark">${w.closed}</div>
-      </div>`;
-    });
-    document.getElementById('table-rows').innerHTML = tableRows;
-
-  } catch(e) {
-    console.error('Error cargando Tendencia:', e);
-    document.getElementById('table-rows').innerHTML =
-      '<div class="empty">No se pudieron cargar los datos de tendencia.</div>';
-  }
-
-  document.getElementById('load-tendencia').style.display = 'none';
-  document.getElementById('tendencia-content').style.display = 'block';
-}
-
-function showError(msg) {
-  document.getElementById('load-funnel').style.display    = 'none';
-  document.getElementById('funnel-content').innerHTML =
-    `<div class="error-box">No se pudieron cargar los datos.<br><small>${msg}</small><br><br>
-     Verifica que el Apps Script esté publicado como "Cualquier persona".</div>`;
-  document.getElementById('funnel-content').style.display = 'block';
-}
-
-function switchTab(t) {
-  document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['funnel','empresas','tendencia'][i]===t);
+function tabla(filas){
+  if(!filas.length) return '<div class="aviso">Sin cuentas en esta etapa.</div>';
+  let h='<table><thead><tr><th>Empresa</th><th class="num-col">CFDIs</th></tr></thead><tbody>';
+  filas.forEach(f=>{
+    const origen=(f.origen||'').toLowerCase();
+    const vol=f.volumen?Number(f.volumen).toLocaleString('es-MX'):'—';
+    h+=`<tr><td><div class="empresa">${f.empresa}</div>
+        <div class="meta">${f.contacto||''}</div>
+        <div class="meta"><span class="etiqueta ${origen}">${f.origen||'—'}</span></div></td>
+        <td class="num-col">${vol}</td></tr>`;
   });
-  document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
-  document.getElementById('tab-'+t).classList.add('active');
+  return h+'</tbody></table>';
 }
 
-loadData();
+function embudo(mql,sql,closed){
+  const total=Math.max(mql,sql,closed,1);
+  const datos=[
+    {rot:'MQL — Demo agendada',n:mql,color:'#0E2EFB'},
+    {rot:'SQL — Probando o en cierre',n:sql,color:'#1FCDFF'},
+    {rot:'Cerrado — Cuenta ganada',n:closed,color:'#12A05C'}
+  ];
+  return datos.map(d=>`<div class="barra">
+    <div class="fila"><span class="rot">${d.rot}</span><span class="num">${d.n}</span></div>
+    <div class="pista"><div class="relleno" style="width:${(d.n/total*100).toFixed(1)}%;background:${d.color}"></div></div>
+  </div>`).join('');
+}
+
+function grafica(serie){
+  if(serie.length<2) return '<div class="aviso">Se necesitan al menos dos cortes para dibujar la tendencia.</div>';
+  const W=900,H=320,mI=44,mD=16,mS=16,mB=42;
+  const aW=W-mI-mD,aH=H-mS-mB;
+  const max=Math.max(...serie.flatMap(p=>[p.mql,p.sql,p.closed]),1);
+  const techo=Math.ceil(max/5)*5||5;
+  const x=i=>mI+(serie.length===1?aW/2:i*aW/(serie.length-1));
+  const y=v=>mS+aH-(v/techo*aH);
+
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución diaria del pipeline">`;
+  for(let t=0;t<=techo;t+=Math.max(1,Math.round(techo/5))){
+    g+=`<line x1="${mI}" y1="${y(t)}" x2="${W-mD}" y2="${y(t)}" stroke="#E8EEFB"/>`;
+    g+=`<text x="${mI-10}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="#5B6784" font-family="Outfit">${t}</text>`;
+  }
+  const paso=Math.ceil(serie.length/8);
+  serie.forEach((p,i)=>{
+    if(i%paso===0||i===serie.length-1)
+      g+=`<text x="${x(i)}" y="${H-16}" text-anchor="middle" font-size="11" fill="#5B6784" font-family="Outfit">${fechaCorta(p.fecha)}</text>`;
+  });
+  [['mql','#0E2EFB'],['sql','#1FCDFF'],['closed','#12A05C']].forEach(([k,c])=>{
+    const d=serie.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(' ');
+    g+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    serie.forEach((p,i)=>{g+=`<circle cx="${x(i).toFixed(1)}" cy="${y(p[k]).toFixed(1)}" r="3.5" fill="#fff" stroke="${c}" stroke-width="2"><title>${fechaCorta(p.fecha)} — ${k.toUpperCase()}: ${p[k]}</title></circle>`;});
+  });
+  return g+'</svg>';
+}
+
+async function cargar(){
+  try{
+    const [rp,rt]=await Promise.all([fetch(ENDPOINT),fetch(ENDPOINT+'?sheet=tendencia')]);
+    const pipeline=leerCSV(await rp.text());
+    const tend=leerCSV(await rt.text());
+
+    /* Pipeline Activo: fila 1 título, fila 2 encabezados, datos desde la fila 3 */
+    const cuentas=pipeline.slice(2)
+      .filter(f=>f[0]&&f[0].trim())
+      .map(f=>({empresa:f[0].trim(),contacto:(f[1]||'').trim(),origen:(f[6]||'').trim(),
+                etapa:(f[7]||'').trim(),volumen:(f[8]||'').trim()}));
+
+    const mql=cuentas.filter(c=>c.etapa==='MQL');
+    const sql=cuentas.filter(c=>c.etapa==='SQL');
+    const closed=cuentas.filter(c=>c.etapa==='Closed');
+
+    document.getElementById('c-mql').textContent=mql.length;
+    document.getElementById('c-sql').textContent=sql.length;
+    document.getElementById('c-closed').textContent=closed.length;
+    document.getElementById('embudo').innerHTML=embudo(mql.length,sql.length,closed.length);
+    document.getElementById('n-mql').textContent=`(${mql.length})`;
+    document.getElementById('n-sql').textContent=`(${sql.length})`;
+    document.getElementById('t-mql').innerHTML=tabla(mql);
+    document.getElementById('t-sql').innerHTML=tabla(sql);
+
+    /* Tendencia: fila 1 encabezados, columna A con fecha real */
+    const serie=tend.slice(1)
+      .map(f=>({fecha:aFecha(f[0]),mql:+f[1]||0,sql:+f[2]||0,closed:+f[3]||0}))
+      .filter(p=>p.fecha)
+      .sort((a,b)=>a.fecha-b.fecha);
+    document.getElementById('g-tendencia').innerHTML=grafica(serie);
+
+    const ultimo=serie.length?serie[serie.length-1].fecha:null;
+    document.getElementById('actualizado').textContent=
+      ultimo?`Último corte: ${ultimo.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})} · ${cuentas.length} cuentas activas`
+            :`${cuentas.length} cuentas activas`;
+  }catch(e){
+    document.getElementById('actualizado').textContent='No se pudieron cargar los datos.';
+    document.getElementById('embudo').innerHTML='<div class="aviso error">No hay conexión con la hoja. Revisa que el web app siga publicado con acceso para cualquier usuario.</div>';
+    document.getElementById('g-tendencia').innerHTML='<div class="aviso error">Sin datos de tendencia.</div>';
+  }
+}
+cargar();
 </script>
 </body>
 </html>
-
